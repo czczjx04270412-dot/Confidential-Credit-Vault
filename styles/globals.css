@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#__next {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #0b0d12;
+}
+
+.wallet-button {
+  height: 42px !important;
+  border-radius: 6px !important;
+  background: #28d7c4 !important;
+  color: #0b0d12 !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  padding: 0 14px !important;
+}
+
+.wallet-adapter-dropdown-list,
+.wallet-adapter-modal-wrapper {
+  background: #111721 !important;
+  border: 1px solid #273244 !important;
+  color: #f8fafc !important;
+}
+
+.wallet-adapter-modal-button-close {
+  background: #273244 !important;
+}
