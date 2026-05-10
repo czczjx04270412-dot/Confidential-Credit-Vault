@@ -1,7 +1,7 @@
 {
   "network": "sepolia",
   "contract": "ConfidentialCreditVault",
-  "address": "0xA2b639aa6B67b022329bd97ac3c4c66aAFB3EF2d",
+  "address": "0x3B9e3c1b9370c0C53EE3D4f11b3d5E048eBD9825",
   "complianceOfficer": "0xD85a389004F5c59fd991C98376e27F9aD6f75996",
-  "deployedAt": "2026-05-09T12:31:25.339Z"
+  "deployedAt": "2026-05-10T03:05:36.932Z"
 }

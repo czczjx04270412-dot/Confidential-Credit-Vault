@@ -34,6 +34,7 @@ type WalletState = {
 
 const WalletContext = createContext<WalletState | null>(null);
 const SEPOLIA_CHAIN_ID = "0xaa36a7";
+const SEPOLIA_RPC_URL = process.env.NEXT_PUBLIC_SEPOLIA_RPC_URL || "https://rpc.sepolia.org";
 
 export function getEvmProvider() {
   if (typeof window === "undefined") return undefined;
@@ -200,7 +201,7 @@ export function EthereumWalletProvider({ children }: { children: ReactNode }) {
               chainId: SEPOLIA_CHAIN_ID,
               chainName: "Sepolia 测试网",
               nativeCurrency: { name: "SepoliaETH", symbol: "ETH", decimals: 18 },
-              rpcUrls: ["https://eth-sepolia.g.alchemy.com/v2/wE5PEtS-pj9TQ6Shq5Xo2"],
+              rpcUrls: [SEPOLIA_RPC_URL],
               blockExplorerUrls: ["https://sepolia.etherscan.io"]
             }
           ]

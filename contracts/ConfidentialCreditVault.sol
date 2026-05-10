@@ -146,7 +146,10 @@ contract ConfidentialCreditVault is ZamaEthereumConfig {
 
     function fundLoan(uint256 applicationId) external payable {
         Application storage application = applications[applicationId];
+        require(application.borrower != address(0), "Application not found");
         require(application.status == Status.Submitted, "Application is not fundable");
+        require(msg.sender != application.borrower, "Borrower cannot fund own loan");
+        require(msg.value > 0, "Funding value required");
         application.status = Status.Funded;
         emit LoanFunded(applicationId, msg.sender);
     }
