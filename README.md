@@ -1,37 +1,69 @@
-# Zama 隐私抵押率优化器
+# Confidential Credit Vault
 
-一个基于 Zama FHEVM 的隐私金融 dApp 演示。项目面向抵押借贷场景：借款人仍然需要抵押资产，但风险定价不只依赖公开抵押率，而是让收入稳定性、信用历史、负债压力、资产来源等敏感风控输入以加密形式进入 Solidity 合约，由 Zama FHE 在密文状态下计算风险结果、最低抵押率和建议利率。
+Confidential Credit Vault is a Zama FHEVM based privacy lending demo. It shows how an on-chain lending product can use encrypted borrower risk signals to price collateral and interest, while still keeping the borrower's raw financial profile private.
 
-## 项目定位
+The demo contains both a Solidity smart contract and a Next.js frontend. It runs on Ethereum Sepolia and uses real wallet transactions for application submission, collateral locking, lender funding, and borrower repayment.
 
-公共区块链上的借贷信息默认透明，用户的资金行为、风险画像和策略偏好容易被公开观察。本项目展示一种更现实的隐私借贷方案：
+## What It Demonstrates
 
-- 借款金额、公开抵押率、贷款期限等必要业务信息保持公开。
-- 借款人的敏感风险输入通过 Zama Relayer SDK 加密后提交。
-- 合约在密文上计算风险分、风险等级、最低抵押率和建议利率。
-- 贷方只看到授权后的最终结果，不看到原始隐私数据。
-- AI 风险解释只读取合约授权披露的结果，不读取原始评分。
+Public DeFi lending usually exposes too much user behavior. A lender needs risk information, but the borrower should not have to reveal raw income, credit, debt pressure, or asset-source signals to the whole market.
 
-## 核心功能
+This project demonstrates a practical middle ground:
 
-- 借款人连接 EVM 钱包，填写借款金额和期限。
-- 前端读取 SepoliaETH 余额，并按演示汇率折算可用抵押额度。
-- 前端生成风险画像，并使用 Zama Relayer SDK 加密 4 个隐私输入。
-- Solidity 合约接收 `externalEuint64` 和 `inputProof`。
-- 合约使用 FHE 运算计算风险分、风险等级、最低抵押率、建议年化利率。
-- 借款申请可以写入 Sepolia 上的 Zama FHEVM 合约。
-- 贷方市场可以查看授权后的风险结果，并调用 DeepSeek 生成风险解释。
-- 贷方可以用另一个 EVM 钱包发起链上放款交易，调用合约 `fundLoan`。
+- Borrowers submit encrypted risk inputs through the Zama Relayer SDK.
+- The smart contract computes the risk score, risk band, minimum collateral ratio, and suggested interest rate with FHE operations.
+- Lenders see only the final risk result needed for a funding decision.
+- DeepSeek explains the Zama contract result in plain language for the lender.
+- The lender can fund the loan from a second wallet.
+- The borrower receives SepoliaETH from the contract and later repays principal plus interest.
+- The collateral locked by the borrower is released after repayment.
 
-## Zama 使用方式
+## Current Sepolia Contract
 
-智能合约位置：
+```text
+ConfidentialCreditVault: 0x8eC4fAE45e3eDCD6aF3026022109E31ee6397C8f
+Deployer / compliance officer: 0xD85a389004F5c59fd991C98376e27F9aD6f75996
+Network: Ethereum Sepolia
+```
+
+The current contract version supports:
+
+- payable borrower application submission with collateral deposit
+- lender funding without a separate borrower-to-lender authorization step
+- direct funding transfer from the contract to the borrower
+- borrower repayment through `repayLoan`
+- repayment transfer to the lender
+- collateral release to the borrower after repayment
+
+## User Flow
+
+1. Borrower wallet opens `/borrow`.
+2. Borrower enters loan amount and loan term.
+3. The frontend builds a deterministic demo risk profile for the wallet.
+4. The Zama Relayer SDK encrypts four private inputs:
+   - income stability score
+   - credit history score
+   - debt pressure score
+   - asset source score
+5. Borrower submits the application on Sepolia and locks collateral in the contract.
+6. Lender wallet opens `/lend`.
+7. Lender reviews the public loan data and calls DeepSeek for a risk explanation.
+8. Lender decides based on the AI explanation and funds the loan on-chain.
+9. The contract forwards the funded SepoliaETH to the borrower wallet.
+10. Borrower returns to `/borrow` and repays the exact on-chain repayment amount.
+11. The contract sends principal plus interest to the lender and releases collateral to the borrower.
+
+## Why Zama Is Used
+
+The contract uses FHE so private borrower signals can be processed without revealing the raw values.
+
+The main contract is:
 
 ```text
 contracts/ConfidentialCreditVault.sol
 ```
 
-合约使用的 Zama / FHEVM 能力：
+Zama/FHEVM primitives used:
 
 ```solidity
 externalEuint64
@@ -48,13 +80,13 @@ FHE.allow
 FHE.allowThis
 ```
 
-前端 Zama 交互位置：
+Frontend encryption logic is in:
 
 ```text
 lib/zamaContract.ts
 ```
 
-前端加密输入流程：
+The frontend creates encrypted inputs with:
 
 ```ts
 const { createInstance, initSDK, SepoliaConfig } = await import("@zama-fhe/relayer-sdk/web");
@@ -74,7 +106,7 @@ encryptedInput.add64(assetSource);
 const encrypted = await encryptedInput.encrypt();
 ```
 
-随后前端把 `handles` 和 `inputProof` 提交给合约：
+The encrypted handles and proof are then sent to:
 
 ```solidity
 submitApplication(
@@ -84,178 +116,175 @@ submitApplication(
   encryptedCreditScore,
   encryptedDebtPressure,
   encryptedAssetSourceScore,
-  inputProof
+  inputProof,
+  clearTermDays,
+  clearSuggestedRateBps
 )
 ```
 
-## 风险计算模型
+## Risk Model
 
-当前演示使用以下加权模型：
-
-```text
-风险分 =
-信用历史评分 * 40%
-+ 收入稳定性评分 * 30%
-+ 资产来源评分 * 20%
-- 负债压力评分 * 10%
-```
-
-合约根据风险分选择抵押率和利率：
+The demo risk model is intentionally simple and readable for judging:
 
 ```text
-低风险：最低抵押率 120%，建议年化 18%
-中风险：最低抵押率 150%，建议年化 36%
-高风险：最低抵押率 180%，建议年化 72%
-拒绝：不进入放款流程
+riskScore =
+creditHistoryScore * 40%
++ incomeStabilityScore * 30%
++ assetSourceScore * 20%
+- debtPressureScore * 10%
 ```
 
-利息按借款期限折算：
+The contract maps the encrypted risk score to final lending terms:
 
 ```text
-预计利息 = 借款金额 * 年化利率 * 计息天数 / 365
+Low risk:    minimum collateral ratio 120%, suggested APR 18%
+Medium risk: minimum collateral ratio 150%, suggested APR 36%
+High risk:   minimum collateral ratio 180%, suggested APR 72%
+Reject:      not eligible for funding
 ```
 
-## 页面结构
+Interest is calculated by term:
 
 ```text
-/dashboard    总览仪表盘
-/borrow       借款申请
-/lend         贷方市场
-/compliance   合规说明
+estimatedInterest = loanAmount * APR * termDays / 365
+repaymentDue = fundedAmount + on-chain interest
 ```
 
-## 合约地址
+## DeepSeek Role
 
-当前 Sepolia 部署地址：
+DeepSeek is not used to read or infer raw private borrower data.
+
+It receives only the final result needed by the lender:
+
+- risk band
+- risk score
+- public collateral ratio
+- required collateral ratio
+- suggested APR
+- term
+- estimated interest
+- estimated repayment
+- current status
+
+Its role is to generate a lender-facing explanation. The lender makes the decision based on the Zama contract result plus the AI explanation.
+
+## Pages
 
 ```text
-0x3B9e3c1b9370c0C53EE3D4f11b3d5E048eBD9825
+/dashboard    overview
+/borrow       borrower application and repayment
+/lend         lender market and AI-assisted funding
+/compliance   compliance explanation
 ```
 
-部署钱包：
+## Local Setup
 
-```text
-0xD85a389004F5c59fd991C98376e27F9aD6f75996
-```
-
-## 本地运行
-
-安装依赖：
+Install dependencies:
 
 ```bash
 npm install
 ```
 
-启动前端：
+Create `.env.local`:
+
+```env
+SEPOLIA_RPC_URL=your_sepolia_rpc_url
+PRIVATE_KEY=your_deployment_wallet_private_key
+NEXT_PUBLIC_CONFIDENTIAL_CREDIT_VAULT=0x8eC4fAE45e3eDCD6aF3026022109E31ee6397C8f
+DEEPSEEK_API_KEY=your_deepseek_api_key
+```
+
+Run the frontend:
 
 ```bash
 npm run dev
 ```
 
-打开：
+Open:
 
 ```text
 http://localhost:3000/dashboard
 ```
 
-## 环境变量
+For the full DeepSeek API route, use the Next.js dev server. Static export is useful for local demo hosting, but normal Next.js server mode is the simplest way to run API routes.
 
-创建 `.env.local`：
+## Compile And Deploy
 
-```env
-SEPOLIA_RPC_URL=你的 Sepolia RPC
-PRIVATE_KEY=你的 EVM 部署钱包私钥
-NEXT_PUBLIC_CONFIDENTIAL_CREDIT_VAULT=0x3B9e3c1b9370c0C53EE3D4f11b3d5E048eBD9825
-NEXT_PUBLIC_SEPOLIA_RPC_URL=你的前端 Sepolia RPC，可留空使用公共 RPC
-DEEPSEEK_API_KEY=你的 DeepSeek API Key
-```
-
-说明：
-
-- `PRIVATE_KEY` 只用于部署，不会暴露给前端。
-- `NEXT_PUBLIC_CONFIDENTIAL_CREDIT_VAULT` 会暴露给前端，用于调用合约。
-- 钱包可以使用 MetaMask，也可以使用 Phantom 的 EVM 钱包，但必须是 `0x...` 地址并切换到 Sepolia。
-
-## 编译和部署
-
-编译合约：
+Compile contracts:
 
 ```bash
 npm run compile:contracts
 ```
 
-部署到 Sepolia：
+Deploy to Sepolia:
 
 ```bash
 npm run deploy:sepolia
 ```
 
-部署成功后，脚本会输出：
+After deployment, copy the printed contract address into `.env.local`:
 
-```text
+```env
 NEXT_PUBLIC_CONFIDENTIAL_CREDIT_VAULT=0x...
 ```
 
-把该地址写回 `.env.local`，然后重启前端。
+Then rebuild or restart the frontend.
 
-## 演示流程
+## Demo Checklist
 
-1. 打开 `/borrow`。
-2. 连接 EVM 钱包并切换到 Sepolia。
-3. 填写借款金额和期限。
-4. 选择风险画像模式。
-5. 点击“加密并提交”。
-6. 钱包确认交易，申请写入 Zama 合约。
-7. 打开 `/lend`。
-8. 使用另一个 EVM 钱包作为贷方。
-9. 点击“调用 DeepSeek”生成风险解释。
-10. 点击“链上放款”，调用合约 `fundLoan`。
+1. Open `/borrow` with wallet 1.
+2. Switch wallet 1 to Sepolia.
+3. Enter a loan amount and term.
+4. Submit the encrypted application and confirm the wallet transaction.
+5. Switch to wallet 2.
+6. Open `/lend`.
+7. Click `Call DeepSeek` to generate the lender explanation.
+8. Click `Fund on-chain based on AI analysis`.
+9. Confirm that wallet 2 pays SepoliaETH and wallet 1 receives the funding.
+10. Switch back to wallet 1.
+11. Open `/borrow`.
+12. Click `Repay on-chain`.
+13. Confirm that the lender receives repayment and the borrower receives collateral back.
 
-## 隐私边界
+## Privacy Boundary
 
-加密处理：
+Encrypted / protected:
 
-- 收入稳定性评分
-- 信用历史评分
-- 负债压力评分
-- 资产来源评分
-- 风险分
-- 风险等级
-- 最低抵押率
-- 建议利率
-- 审批结果
+- income stability score
+- credit history score
+- debt pressure score
+- asset source score
+- risk computation
+- risk band computation
+- required collateral ratio computation
+- suggested rate computation
 
-公开展示：
+Public or lender-facing:
 
-- 借款金额
-- 公开抵押率
-- 期限
-- 到期应还金额
-- 授权后的风险等级和利率结果
-- 链上交易哈希
+- loan amount
+- public collateral ratio
+- term
+- estimated repayment
+- final risk band
+- suggested APR
+- transaction hashes
+- funding and repayment status
 
-AI 风险解释只读取授权后的结果，不读取原始隐私评分。
+## Demo Assumptions
 
-## 当前演示假设
+This is a hackathon/demo project, so it uses a few practical simplifications:
 
-为了让评审能在短时间内完整跑通流程，当前版本保留了以下演示假设：
+- SepoliaETH is used as the demo asset.
+- USDT values in the UI are demo accounting units.
+- A fixed demo conversion rate is used: `1 SepoliaETH = 3000 test USDT`.
+- The risk profile is generated deterministically from the wallet and selected mode to simulate external credit data.
+- The current version focuses on encrypted risk pricing, lender funding, repayment, and collateral release.
+- A production version should add ERC20 stablecoin support, oracle pricing, liquidation logic, stronger event indexing, and formal compliance workflows.
 
-- 抵押额度由 SepoliaETH 按固定演示汇率折算为测试 USDT。
-- 风险画像由钱包地址和模式稳定生成，用于模拟外部风控数据源。
-- 贷方放款使用 SepoliaETH 进入合约 Vault，后续可替换为 ERC20 测试 USDT。
-- 当前版本重点展示 Zama FHE 风控计算和授权披露，不包含完整清算引擎。
-
-## 后续可扩展方向
-
-- 接入 ERC20 测试 USDT 抵押和放款。
-- 接入价格预言机和清算逻辑。
-- 增加链上事件索引和历史记录持久化。
-- 增加合规角色的授权查看和审计流程。
-- 将风险输入接入真实链下信用或 RWA 数据源。
-
-## 技术栈
+## Tech Stack
 
 - Next.js
+- React
 - TypeScript
 - Solidity
 - Hardhat
@@ -264,6 +293,6 @@ AI 风险解释只读取授权后的结果，不读取原始隐私评分。
 - Zama Relayer SDK
 - DeepSeek API
 
-## 一句话总结
+## One-Sentence Summary
 
-本项目用 Zama FHEVM 展示了隐私抵押借贷中的动态风险定价：借款人的敏感风险输入保持加密，合约在密文上计算最低抵押率和利率，贷方只获得必要的授权结果，从而兼顾隐私保护、风险控制和资金效率。
+Confidential Credit Vault shows how Zama FHE can make privacy-preserving lending practical: borrowers keep sensitive risk inputs encrypted, the contract computes lending terms over ciphertext, DeepSeek explains only the final risk result, and lenders can fund and settle loans through real Sepolia transactions.

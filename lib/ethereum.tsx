@@ -27,7 +27,7 @@ type WalletState = {
   isBalanceLoading: boolean;
   error: string | null;
   connect: () => Promise<void>;
-  disconnect: () => void;
+  disconnect: () => Promise<void>;
   refreshBalance: () => Promise<void>;
   switchToSepolia: () => Promise<void>;
 };
@@ -155,9 +155,30 @@ export function EthereumWalletProvider({ children }: { children: ReactNode }) {
     setWalletName(detectWalletName(provider));
     setIsConnecting(true);
     try {
+      try {
+        await provider.request({ method: "wallet_requestPermissions", params: [{ eth_accounts: {} }] });
+      } catch {
+        // Fall back to eth_requestAccounts for wallets without wallet_requestPermissions.
+      }
       const accounts = (await provider.request({ method: "eth_requestAccounts" })) as string[];
       const currentChainId = (await provider.request({ method: "eth_chainId" })) as string;
-      setAddress(accounts[0] ?? null);
+      const selectedAddress = accounts[0] ?? null;
+
+      if (selectedAddress) {
+        const message = [
+          "Zama Confidential Credit Vault",
+          "请签署此消息以确认重新连接钱包。",
+          `钱包地址: ${selectedAddress}`,
+          `时间: ${new Date().toISOString()}`
+        ].join("\n");
+
+        await provider.request({
+          method: "personal_sign",
+          params: [message, selectedAddress]
+        });
+      }
+
+      setAddress(selectedAddress);
       setChainId(currentChainId);
     } catch (err) {
       const message = err instanceof Error ? err.message : "钱包连接被拒绝。";
@@ -167,7 +188,17 @@ export function EthereumWalletProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const disconnect = useCallback(() => {
+  const disconnect = useCallback(async () => {
+    const provider = getEvmProvider();
+
+    if (provider) {
+      try {
+        await provider.request({ method: "wallet_revokePermissions", params: [{ eth_accounts: {} }] });
+      } catch {
+        // Many wallets do not expose revokePermissions; clearing app state still forces our UI to reconnect.
+      }
+    }
+
     setAddress(null);
     setEthBalance(null);
     setError(null);

@@ -1,41 +1,41 @@
-# Confidential Credit Vault - 2 分钟真人演示稿
+# Confidential Credit Vault - 2 Minute Demo Script
 
-## 0:00 - 0:15 项目介绍
+## 0:00 - 0:15 Introduction
 
-大家好，我的项目是 Confidential Credit Vault，一个基于 Zama FHEVM 的隐私借贷风控 dApp。
+Hello, this project is Confidential Credit Vault, a privacy lending demo built with Zama FHEVM.
 
-它解决的问题是：链上借贷需要风险评估，但借款人的收入、信用历史、负债压力和资产来源等敏感数据不应该完全公开。
+The problem is simple: on-chain lending needs risk assessment, but a borrower should not have to publicly reveal income quality, credit history, debt pressure, or asset-source signals.
 
-## 0:15 - 0:35 核心思路
+## 0:15 - 0:35 Core Idea
 
-这个项目不是普通借贷平台，而是一个隐私抵押率优化器。
+This project uses Zama FHE to compute credit risk over encrypted borrower data.
 
-借款人仍然需要抵押资产，但最低抵押率和建议利率不是固定的，而是由加密风险数据计算出来。
+The borrower still locks collateral, but the required collateral ratio and suggested interest rate are not fixed. They are calculated from encrypted risk inputs inside the smart contract.
 
-## 0:35 - 0:55 借款人流程
+## 0:35 - 0:55 Borrower Flow
 
-在借款页面，用户连接 EVM 钱包，填写借款金额和期限。
+On the borrow page, wallet 1 connects to Sepolia, enters a loan amount and a term, and submits an application.
 
-前端生成风险画像，并通过 Zama Relayer SDK 把收入稳定性、信用历史、负债压力和资产来源四个指标加密后提交。
+The frontend uses the Zama Relayer SDK to encrypt four private inputs: income stability, credit history, debt pressure, and asset source. The borrower confirms a wallet transaction, and the application is written to the Zama FHEVM contract with collateral locked.
 
-## 0:55 - 1:20 Zama 技术点
+## 0:55 - 1:20 Zama Implementation
 
-智能合约使用 `externalEuint64` 接收加密输入，并使用 `FHE.add`、`FHE.sub`、`FHE.mul`、`FHE.div`、`FHE.ge` 和 `FHE.select` 在密文上计算风险分、风险等级、最低抵押率和建议利率。
+The Solidity contract receives `externalEuint64` encrypted inputs and uses FHE operations such as `FHE.add`, `FHE.sub`, `FHE.mul`, `FHE.div`, `FHE.ge`, and `FHE.select`.
 
-原始风险数据不会公开上链。
+The contract computes a risk score, risk band, minimum collateral ratio, suggested APR, and approval result. Raw risk inputs are not publicly exposed.
 
-## 1:20 - 1:40 贷方视角
+## 1:20 - 1:40 Lender And AI Analysis
 
-在贷方市场，贷方只能看到授权披露后的结果，例如风险等级、公开抵押率、目标收益和到期应还金额。
+On the lender page, wallet 2 reviews the loan request. The lender sees only the final risk result, collateral ratio, target return, and repayment amount.
 
-这里还接入了 DeepSeek，用来解释合约输出的风险结果，但 AI 不读取原始隐私数据。
+DeepSeek is used as an explanation layer. It does not receive the raw private inputs. It only explains the Zama contract result so the lender can make a clearer funding decision.
 
-## 1:40 - 1:55 链上放款
+## 1:40 - 1:55 Real Funding And Repayment
 
-当贷方接受这笔申请时，可以使用另一个 EVM 钱包发起链上放款交易，调用合约 `fundLoan`。
+If the lender accepts the risk, wallet 2 calls `fundLoan` and sends SepoliaETH through the contract to wallet 1.
 
-这样借款申请和放款过程都可以在 Sepolia 上验证。
+After funding, wallet 1 can repay on-chain. The contract sends principal plus interest to the lender and releases the locked collateral back to the borrower.
 
-## 1:55 - 2:00 总结
+## 1:55 - 2:00 Closing
 
-Confidential Credit Vault 展示了 Zama FHE 在隐私金融中的真实价值：让链上金融可以在不暴露敏感数据的情况下完成风险定价、授权披露和放款决策。
+Confidential Credit Vault demonstrates real value for privacy finance: encrypted risk calculation, AI-assisted lender explanation, real wallet funding, repayment, and collateral release, all without exposing the borrower's raw financial profile.

@@ -1,4 +1,4 @@
-import { createContext, ReactNode, useContext, useMemo, useState } from "react";
+import { createContext, ReactNode, useContext, useEffect, useMemo, useState } from "react";
 
 export type ApplicationStatus = "Encrypted review" | "Approved" | "Needs review" | "Funded" | "Repaid";
 export type RiskBand = "Low" | "Medium" | "High" | "Reject";
@@ -7,12 +7,15 @@ export type LoanTermUnit = "day" | "week" | "month" | "year";
 export type CreditApplicationInput = {
   amount: number;
   collateral: number;
+  collateralEth?: string;
   incomeScore: number;
   creditScore: number;
   debtPressure: number;
   assetSource: number;
   termValue: number;
   termUnit: LoanTermUnit;
+  termDays?: number;
+  annualInterestRate?: number;
 };
 
 export type RiskResult = {
@@ -38,11 +41,14 @@ export type CreditApplication = CreditApplicationInput &
     submittedAt: string;
     encryptedHandles: Record<"incomeScore" | "creditScore" | "debtPressure" | "assetSource", string>;
     status: ApplicationStatus;
-    lenderAccess: boolean;
+    borrowerAddress?: string;
     chainTxHash?: string;
     chainApplicationId?: string;
     contractAddress?: string;
     fundTxHash?: string;
+    fundedTo?: string;
+    repaymentEth?: string;
+    repayTxHash?: string;
   };
 
 type CreditVaultContextValue = {
@@ -52,9 +58,13 @@ type CreditVaultContextValue = {
     borrower: string,
     chain?: Pick<CreditApplication, "chainTxHash" | "chainApplicationId" | "contractAddress">
   ) => CreditApplication;
-  grantLenderAccess: (id: string) => void;
-  fundLoan: (id: string, chain?: Pick<CreditApplication, "fundTxHash">) => void;
+  fundLoan: (id: string, chain?: Pick<CreditApplication, "fundTxHash" | "fundedTo">) => void;
+  repayLoan: (id: string, chain?: Pick<CreditApplication, "repayTxHash">) => void;
 };
+
+const STORAGE_KEY = "zama-credit-vault-applications";
+const LEGACY_STORAGE_PREFIX = "zama-credit-vault-applications:";
+const RESET_MARKER_KEY = "zama-credit-vault-reset-2026-05-11-ai-lender-01";
 
 const CreditVaultContext = createContext<CreditVaultContextValue | null>(null);
 
@@ -130,43 +140,6 @@ export function computeRisk(input: CreditApplicationInput): RiskResult {
   };
 }
 
-const seedApplications: CreditApplication[] = [
-  {
-    id: "APP-001",
-    borrower: "0x8f3a...91c2",
-    amount: 1200,
-    collateral: 2100,
-    incomeScore: 88,
-    creditScore: 92,
-    debtPressure: 20,
-    assetSource: 86,
-    termValue: 3,
-    termUnit: "month",
-    submittedAt: "演示数据",
-    encryptedHandles: {
-      incomeScore: "0x656e635f696e636f6d65...",
-      creditScore: "0x656e635f637265646974...",
-      debtPressure: "0x656e635f646562745f70...",
-      assetSource: "0x656e635f617373657473..."
-    },
-    riskScore: 78,
-    riskBand: "Medium",
-    collateralRatio: 175,
-    requiredCollateralRatio: 150,
-    requiredCollateralValue: 1800,
-    collateralOk: true,
-    approved: true,
-    suggestedRate: "36.0%",
-    annualInterestRate: 36,
-    termDays: 90,
-    termLabel: "3 个月",
-    estimatedInterest: 106.52,
-    estimatedRepayment: 1306.52,
-    status: "Approved",
-    lenderAccess: true
-  }
-];
-
 export const protectedFields = [
   "收入稳定性评分",
   "信用历史评分",
@@ -195,7 +168,61 @@ export function statusLabel(status: ApplicationStatus) {
 }
 
 export function CreditVaultProvider({ children }: { children: ReactNode }) {
-  const [applications, setApplications] = useState<CreditApplication[]>(seedApplications);
+  const [applications, setApplications] = useState<CreditApplication[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    try {
+      if (!window.localStorage.getItem(RESET_MARKER_KEY)) {
+        window.localStorage.removeItem(STORAGE_KEY);
+        for (let index = window.localStorage.length - 1; index >= 0; index -= 1) {
+          const key = window.localStorage.key(index);
+          if (key?.startsWith(LEGACY_STORAGE_PREFIX)) {
+            window.localStorage.removeItem(key);
+          }
+        }
+        window.localStorage.setItem(RESET_MARKER_KEY, "done");
+        setApplications([]);
+        return;
+      }
+
+      const saved = window.localStorage.getItem(STORAGE_KEY);
+      const merged = new Map<string, CreditApplication>();
+
+      if (saved) {
+        for (const application of JSON.parse(saved) as CreditApplication[]) {
+          merged.set(application.chainApplicationId || application.id, application);
+        }
+      }
+
+      for (let index = 0; index < window.localStorage.length; index += 1) {
+        const key = window.localStorage.key(index);
+        if (!key?.startsWith(LEGACY_STORAGE_PREFIX)) continue;
+
+        const legacySaved = window.localStorage.getItem(key);
+        if (!legacySaved) continue;
+
+        for (const application of JSON.parse(legacySaved) as CreditApplication[]) {
+          merged.set(application.chainApplicationId || application.id, application);
+        }
+      }
+
+      setApplications(Array.from(merged.values()));
+    } catch {
+      setApplications([]);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!isLoaded || typeof window === "undefined") return;
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(applications));
+  }, [applications, isLoaded]);
 
   const value = useMemo<CreditVaultContextValue>(
     () => ({
@@ -206,6 +233,7 @@ export function CreditVaultProvider({ children }: { children: ReactNode }) {
         const application: CreditApplication = {
           id,
           borrower: shortAddress(borrower),
+          borrowerAddress: borrower,
           ...input,
           ...result,
           submittedAt: new Date().toLocaleString(),
@@ -216,20 +244,19 @@ export function CreditVaultProvider({ children }: { children: ReactNode }) {
             assetSource: makeHandle("asset", id)
           },
           status: result.approved ? "Approved" : "Needs review",
-          lenderAccess: result.approved,
           ...chain
         };
         setApplications((current) => [application, ...current]);
         return application;
       },
-      grantLenderAccess(id) {
-        setApplications((current) =>
-          current.map((application) => (application.id === id ? { ...application, lenderAccess: true } : application))
-        );
-      },
       fundLoan(id, chain) {
         setApplications((current) =>
           current.map((application) => (application.id === id ? { ...application, status: "Funded", ...chain } : application))
+        );
+      },
+      repayLoan(id, chain) {
+        setApplications((current) =>
+          current.map((application) => (application.id === id ? { ...application, status: "Repaid", ...chain } : application))
         );
       }
     }),

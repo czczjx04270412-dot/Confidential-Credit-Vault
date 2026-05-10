@@ -10,7 +10,7 @@ import {
   useCreditVault
 } from "@/lib/creditVault";
 import { buildRiskProfile, profileModeLabel, RiskProfileMode } from "@/lib/riskProfile";
-import { hasConfiguredVault, submitEncryptedApplicationToZama } from "@/lib/zamaContract";
+import { hasConfiguredVault, repayLoanOnZama, submitEncryptedApplicationToZama } from "@/lib/zamaContract";
 
 const ETH_TO_TEST_USDT = 3000;
 const PAGE_SIZE = 3;
@@ -19,12 +19,44 @@ function formatUsdt(value: number) {
   return `${value.toLocaleString("zh-CN", { maximumFractionDigits: 2, minimumFractionDigits: value % 1 ? 2 : 0 })} USDT`;
 }
 
-function ApplicationCard({ application }: { application: CreditApplication }) {
+function ApplicationCard({
+  application,
+  currentAddress,
+  onRepay
+}: {
+  application: CreditApplication;
+  currentAddress: string | null;
+  onRepay: (id: string, chain?: Pick<CreditApplication, "repayTxHash">) => void;
+}) {
+  const [repayStatus, setRepayStatus] = useState("");
+  const [repayError, setRepayError] = useState("");
+  const [isRepaying, setIsRepaying] = useState(false);
   const resultTone = application.approved
     ? "border-lime/30 bg-lime/5"
     : application.collateralOk
       ? "border-amber/30 bg-amber/5"
       : "border-danger/30 bg-danger/5";
+  const isBorrowerWallet =
+    Boolean(currentAddress && application.borrowerAddress) && currentAddress?.toLowerCase() === application.borrowerAddress?.toLowerCase();
+  const repaymentEth = Math.max(application.estimatedRepayment / ETH_TO_TEST_USDT, 0.000001).toFixed(6);
+  const canRepay = application.status === "Funded" && Boolean(application.chainApplicationId) && application.chainApplicationId !== "unknown" && isBorrowerWallet;
+
+  async function handleRepay() {
+    if (!canRepay || !application.chainApplicationId) return;
+    setRepayError("");
+    setRepayStatus("");
+    setIsRepaying(true);
+
+    try {
+      const chain = await repayLoanOnZama(application.chainApplicationId);
+      onRepay(application.id, { repayTxHash: chain.transactionHash });
+      setRepayStatus("已完成链上还款，抵押金已释放");
+    } catch (err) {
+      setRepayError(err instanceof Error ? err.message : "链上还款失败");
+    } finally {
+      setIsRepaying(false);
+    }
+  }
 
   return (
     <div className={`rounded-md border ${resultTone} p-5`}>
@@ -80,8 +112,32 @@ function ApplicationCard({ application }: { application: CreditApplication }) {
         </div>
         <div className="rounded-md bg-ink p-4">
           <p className="text-xs text-slate-500">到期应还</p>
-          <p className="mt-2 font-semibold text-slate-100">{formatUsdt(application.estimatedRepayment)}</p>
+          <p className="mt-2 font-semibold text-slate-100">
+            {formatUsdt(application.estimatedRepayment)} / {repaymentEth} ETH
+          </p>
         </div>
+      </div>
+      <div className="mt-5 rounded-md border border-line bg-black/20 p-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="text-sm leading-6 text-slate-300">
+            <p className="font-semibold text-slate-100">借款人还款</p>
+            <p>还款由借款钱包发起，本息转给贷方后，合约释放已锁定抵押金。</p>
+          </div>
+          <button
+            onClick={handleRepay}
+            disabled={!canRepay || isRepaying}
+            className="rounded-md border border-lime/40 px-4 py-2 text-sm font-semibold text-lime transition hover:bg-lime/10 disabled:cursor-not-allowed disabled:border-line disabled:text-slate-500"
+          >
+            {isRepaying ? "还款中..." : application.status === "Repaid" ? "已还款" : canRepay ? "链上还款" : "等待可还款"}
+          </button>
+        </div>
+        {application.repayTxHash ? (
+          <p className="mt-3 text-xs text-lime">
+            还款交易：{application.repayTxHash.slice(0, 10)}...{application.repayTxHash.slice(-8)}
+          </p>
+        ) : null}
+        {repayStatus ? <p className="mt-3 text-sm text-lime">{repayStatus}</p> : null}
+        {repayError ? <p className="mt-3 text-sm text-danger">{repayError}</p> : null}
       </div>
     </div>
   );
@@ -89,7 +145,7 @@ function ApplicationCard({ application }: { application: CreditApplication }) {
 
 export default function BorrowApplicationForm() {
   const { address, chainId, connect, ethBalance, isBalanceLoading, refreshBalance, switchToSepolia } = useEthereumWallet();
-  const { applications, submitApplication } = useCreditVault();
+  const { applications, submitApplication, repayLoan } = useCreditVault();
   const [profileMode, setProfileMode] = useState<RiskProfileMode>("safe");
   const [amount, setAmount] = useState("1500");
   const [termValue, setTermValue] = useState("30");
@@ -117,6 +173,7 @@ export default function BorrowApplicationForm() {
   }, [borrowAmount, parsedTermValue, riskProfile, termUnit]);
 
   const collateralNeeded = previewRisk?.requiredCollateralValue ?? 0;
+  const collateralEth = collateralNeeded ? (collateralNeeded / ETH_TO_TEST_USDT).toFixed(6) : "0";
   const availableTestUsdt = Math.floor((ethBalance ?? 0) * ETH_TO_TEST_USDT * 100) / 100;
   const isOnSepolia = isSepolia(chainId);
   const hasEnoughCollateral = Boolean(address) && isOnSepolia && collateralNeeded > 0 && availableTestUsdt >= collateralNeeded;
@@ -135,12 +192,15 @@ export default function BorrowApplicationForm() {
     const input: CreditApplicationInput = {
       amount: borrowAmount,
       collateral: previewRisk.requiredCollateralValue,
+      collateralEth,
       incomeScore: riskProfile.incomeScore,
       creditScore: riskProfile.creditScore,
       debtPressure: riskProfile.debtPressure,
       assetSource: riskProfile.assetSource,
       termValue: parsedTermValue,
-      termUnit
+      termUnit,
+      termDays: previewRisk.termDays,
+      annualInterestRate: previewRisk.annualInterestRate
     };
 
     setSubmitError("");
@@ -276,7 +336,7 @@ export default function BorrowApplicationForm() {
         <div className="mt-4 grid gap-4 md:grid-cols-4">
           <div className="rounded-md border border-line bg-black/20 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">建议抵押净值</p>
-            <p className="mt-2 text-xl font-semibold text-aqua">{collateralNeeded ? formatUsdt(collateralNeeded) : "--"}</p>
+            <p className="mt-2 text-xl font-semibold text-aqua">{collateralNeeded ? `${formatUsdt(collateralNeeded)} / ${collateralEth} ETH` : "--"}</p>
           </div>
           <div className="rounded-md border border-line bg-black/20 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">计息天数</p>
@@ -356,7 +416,7 @@ export default function BorrowApplicationForm() {
 
         <div className="mt-5 space-y-4">
           {visibleApplications.map((application) => (
-            <ApplicationCard key={application.id} application={application} />
+            <ApplicationCard key={application.id} application={application} currentAddress={address} onRepay={repayLoan} />
           ))}
         </div>
 

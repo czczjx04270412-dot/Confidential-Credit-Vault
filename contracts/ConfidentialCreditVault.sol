@@ -29,6 +29,13 @@ contract ConfidentialCreditVault is ZamaEthereumConfig {
         ebool approved;
         Status status;
         uint256 createdAt;
+        uint64 clearTermDays;
+        uint64 clearSuggestedRateBps;
+        uint256 collateralAmount;
+        address lender;
+        uint256 fundedAmount;
+        uint256 repaymentDue;
+        uint256 dueAt;
     }
 
     uint256 public nextApplicationId = 1;
@@ -36,10 +43,9 @@ contract ConfidentialCreditVault is ZamaEthereumConfig {
     mapping(uint256 => Application) private applications;
 
     event ApplicationSubmitted(uint256 indexed applicationId, address indexed borrower, uint64 clearAmount, uint64 clearCollateral);
-    event LenderAccessGranted(uint256 indexed applicationId, address indexed lender);
     event ComplianceOfficerUpdated(address indexed officer);
-    event LoanFunded(uint256 indexed applicationId, address indexed lender);
-    event LoanRepaid(uint256 indexed applicationId, address indexed borrower);
+    event LoanFunded(uint256 indexed applicationId, address indexed lender, address indexed borrower, uint256 amount, uint256 repaymentDue, uint256 dueAt);
+    event LoanRepaid(uint256 indexed applicationId, address indexed borrower, address indexed lender, uint256 repaymentAmount, uint256 collateralReleased);
 
     constructor(address officer) {
         complianceOfficer = officer;
@@ -53,8 +59,11 @@ contract ConfidentialCreditVault is ZamaEthereumConfig {
         externalEuint64 encryptedCreditScore,
         externalEuint64 encryptedDebtPressure,
         externalEuint64 encryptedAssetSourceScore,
-        bytes calldata inputProof
-    ) external returns (uint256 applicationId) {
+        bytes calldata inputProof,
+        uint64 clearTermDays,
+        uint64 clearSuggestedRateBps
+    ) external payable returns (uint256 applicationId) {
+        require(msg.value > 0, "Collateral deposit required");
         applicationId = nextApplicationId++;
 
         euint64 incomeScore = FHE.fromExternal(encryptedIncomeScore, inputProof);
@@ -109,7 +118,14 @@ contract ConfidentialCreditVault is ZamaEthereumConfig {
             suggestedRateBps: suggestedRateBps,
             approved: approved,
             status: Status.Submitted,
-            createdAt: block.timestamp
+            createdAt: block.timestamp,
+            clearTermDays: clearTermDays,
+            clearSuggestedRateBps: clearSuggestedRateBps,
+            collateralAmount: msg.value,
+            lender: address(0),
+            fundedAmount: 0,
+            repaymentDue: 0,
+            dueAt: 0
         });
 
         _allowApplication(applicationId, msg.sender);
@@ -134,16 +150,6 @@ contract ConfidentialCreditVault is ZamaEthereumConfig {
         return (application.borrower, application.clearAmount, application.clearCollateral, application.status, application.createdAt);
     }
 
-    function grantLenderResultAccess(uint256 applicationId, address lender) external {
-        Application storage application = applications[applicationId];
-        require(msg.sender == application.borrower, "Only borrower can grant lender access");
-        FHE.allow(application.approved, lender);
-        FHE.allow(application.riskBand, lender);
-        FHE.allow(application.requiredCollateralBps, lender);
-        FHE.allow(application.suggestedRateBps, lender);
-        emit LenderAccessGranted(applicationId, lender);
-    }
-
     function fundLoan(uint256 applicationId) external payable {
         Application storage application = applications[applicationId];
         require(application.borrower != address(0), "Application not found");
@@ -151,15 +157,52 @@ contract ConfidentialCreditVault is ZamaEthereumConfig {
         require(msg.sender != application.borrower, "Borrower cannot fund own loan");
         require(msg.value > 0, "Funding value required");
         application.status = Status.Funded;
-        emit LoanFunded(applicationId, msg.sender);
+        application.lender = msg.sender;
+        application.fundedAmount = msg.value;
+        application.repaymentDue = msg.value + ((msg.value * application.clearSuggestedRateBps * application.clearTermDays) / 365 / 10000);
+        application.dueAt = block.timestamp + (uint256(application.clearTermDays) * 1 days);
+
+        (bool sent, ) = payable(application.borrower).call{value: msg.value}("");
+        require(sent, "Funding transfer failed");
+
+        emit LoanFunded(applicationId, msg.sender, application.borrower, msg.value, application.repaymentDue, application.dueAt);
     }
 
-    function markRepaid(uint256 applicationId) external {
+    function repayLoan(uint256 applicationId) external payable {
         Application storage application = applications[applicationId];
         require(msg.sender == application.borrower, "Only borrower can mark repayment");
         require(application.status == Status.Funded, "Loan is not funded");
+        require(msg.value >= application.repaymentDue, "Insufficient repayment");
         application.status = Status.Repaid;
-        emit LoanRepaid(applicationId, msg.sender);
+
+        (bool repaid, ) = payable(application.lender).call{value: application.repaymentDue}("");
+        require(repaid, "Repayment transfer failed");
+
+        uint256 refund = msg.value - application.repaymentDue;
+        if (refund > 0) {
+            (bool refunded, ) = payable(application.borrower).call{value: refund}("");
+            require(refunded, "Refund failed");
+        }
+
+        uint256 collateralAmount = application.collateralAmount;
+        application.collateralAmount = 0;
+        (bool released, ) = payable(application.borrower).call{value: collateralAmount}("");
+        require(released, "Collateral release failed");
+
+        emit LoanRepaid(applicationId, msg.sender, application.lender, application.repaymentDue, collateralAmount);
+    }
+
+    function markRepaid(uint256) external pure {
+        revert("Use repayLoan");
+    }
+
+    function getLoanTerms(uint256 applicationId)
+        external
+        view
+        returns (address lender, uint256 collateralAmount, uint256 fundedAmount, uint256 repaymentDue, uint256 dueAt)
+    {
+        Application storage application = applications[applicationId];
+        return (application.lender, application.collateralAmount, application.fundedAmount, application.repaymentDue, application.dueAt);
     }
 
     function setComplianceOfficer(address officer) external {
