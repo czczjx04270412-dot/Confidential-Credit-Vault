@@ -60,20 +60,28 @@ export default function DashboardPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-line">
-                {latestApplications.map((application) => (
-                  <tr key={application.id}>
-                    <td className="py-4 pr-4 font-semibold text-slate-100">{application.id}</td>
-                    <td className="py-4 pr-4 text-slate-300">{application.borrower}</td>
-                    <td className="py-4 pr-4 text-slate-300">{formatUsdt(application.amount)}</td>
-                    <td className="py-4 pr-4 text-aqua">
-                      {application.riskScore} / {riskBandLabel(application.riskBand)}
+                {latestApplications.length ? (
+                  latestApplications.map((application) => (
+                    <tr key={application.id}>
+                      <td className="py-4 pr-4 font-semibold text-slate-100">{application.id}</td>
+                      <td className="py-4 pr-4 text-slate-300">{application.borrower}</td>
+                      <td className="py-4 pr-4 text-slate-300">{formatUsdt(application.amount)}</td>
+                      <td className="py-4 pr-4 text-aqua">
+                        {application.riskScore} / {riskBandLabel(application.riskBand)}
+                      </td>
+                      <td className="py-4 pr-4 text-slate-300">
+                        {application.collateralRatio}% / {application.requiredCollateralRatio}%
+                      </td>
+                      <td className="py-4 pr-4 text-slate-300">{statusLabel(application.status)}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td className="py-4 pr-4 text-slate-500" colSpan={6}>
+                      暂无申请记录。请先到借款申请页面创建一笔链上申请。
                     </td>
-                    <td className="py-4 pr-4 text-slate-300">
-                      {application.collateralRatio}% / {application.requiredCollateralRatio}%
-                    </td>
-                    <td className="py-4 pr-4 text-slate-300">{statusLabel(application.status)}</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>

@@ -22,7 +22,7 @@ export default function Layout({ children }: { children: ReactNode }) {
               ZC
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold tracking-wide">Zama 隐私抵押率优化器</span>
+              <span className="block truncate text-sm font-semibold tracking-wide">Zama 隐私信贷金库</span>
               <span className="block truncate text-xs text-slate-400">用 FHE 为抵押借贷做隐私风险定价</span>
             </span>
           </Link>

@@ -2,14 +2,14 @@ const contractHighlights = [
   "使用 externalEuint64 接收隐私风控输入",
   "使用 euint64 保存加密风险分、最低抵押率和建议利率",
   "使用 FHE.select 在密文条件下选择风险等级和抵押要求",
-  "使用 FHE.allow / FHE.allowThis 控制借款人、贷方和合规方权限"
+  "使用 FHE.allow / FHE.allowThis 控制合约和账户可访问的加密结果"
 ];
 
 export default function ContractPanel() {
   return (
     <section className="rounded-md border border-line bg-panel p-5">
-      <p className="text-xs uppercase tracking-wide text-slate-500">智能合约</p>
-      <h2 className="mt-2 text-xl font-semibold">隐私抵押率优化合约</h2>
+      <p className="text-xs uppercase tracking-wide text-slate-500">Smart Contract</p>
+      <h2 className="mt-2 text-xl font-semibold">隐私信贷金库合约</h2>
       <div className="mt-5 space-y-3">
         {contractHighlights.map((item) => (
           <div key={item} className="rounded-md bg-black/20 px-3 py-3 text-sm text-slate-300">

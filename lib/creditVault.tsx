@@ -172,9 +172,7 @@ export function CreditVaultProvider({ children }: { children: ReactNode }) {
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
+    if (typeof window === "undefined") return;
 
     try {
       if (!window.localStorage.getItem(RESET_MARKER_KEY)) {

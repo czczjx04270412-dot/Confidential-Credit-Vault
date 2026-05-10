@@ -68,7 +68,7 @@ export function formatAddress(address: string | null) {
 export function formatChain(chainId: string | null) {
   if (!chainId) return "未连接";
   if (chainId.toLowerCase() === SEPOLIA_CHAIN_ID) return "Sepolia 测试网";
-  if (chainId.toLowerCase() === "0x1") return "以太坊主网";
+  if (chainId.toLowerCase() === "0x1") return "Ethereum 主网";
   return chainId;
 }
 
@@ -103,7 +103,7 @@ export function EthereumWalletProvider({ children }: { children: ReactNode }) {
       })) as string;
       setEthBalance(weiHexToEth(balanceHex));
     } catch (err) {
-      const message = err instanceof Error ? err.message : "读取 Sepolia ETH 余额失败。";
+      const message = err instanceof Error ? err.message : "读取 SepoliaETH 余额失败。";
       setError(message);
     } finally {
       setIsBalanceLoading(false);
