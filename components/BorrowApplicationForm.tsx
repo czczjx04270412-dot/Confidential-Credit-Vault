@@ -15,6 +15,10 @@ import { hasConfiguredVault, repayLoanOnZama, submitEncryptedApplicationToZama }
 const ETH_TO_TEST_USDT = 3000;
 const PAGE_SIZE = 3;
 
+function formatEth(value: number) {
+  return `${value.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: value % 1 ? 2 : 0 })} ETH`;
+}
+
 function formatUsdt(value: number) {
   return `${value.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: value % 1 ? 2 : 0 })} USDT`;
 }
@@ -113,8 +117,9 @@ function ApplicationCard({
         <div className="rounded-md bg-ink p-4">
           <p className="text-xs text-slate-500">Repayment Due</p>
           <p className="mt-2 font-semibold text-slate-100">
-            {formatUsdt(application.estimatedRepayment)} / {repaymentEth} ETH
+            {formatUsdt(application.estimatedRepayment)}
           </p>
+          <p className="mt-1 text-xs text-slate-500">≈ {formatEth(application.estimatedRepayment / ETH_TO_TEST_USDT)}</p>
         </div>
       </div>
       <div className="mt-5 rounded-md border border-line bg-black/20 p-4">
@@ -336,7 +341,7 @@ export default function BorrowApplicationForm() {
         <div className="mt-4 grid gap-4 md:grid-cols-4">
           <div className="rounded-md border border-line bg-black/20 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">Required Collateral</p>
-            <p className="mt-2 text-xl font-semibold text-aqua">{collateralNeeded ? `${formatUsdt(collateralNeeded)} / ${collateralEth} ETH` : "--"}</p>
+            <p className="mt-2 text-xl font-semibold text-aqua">{collateralNeeded ? formatUsdt(collateralNeeded) : "--"}</p>
           </div>
           <div className="rounded-md border border-line bg-black/20 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">Interest Days</p>

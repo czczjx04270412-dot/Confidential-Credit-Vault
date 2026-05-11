@@ -5,6 +5,10 @@ import { fundLoanOnZama } from "@/lib/zamaContract";
 
 const ETH_TO_TEST_USDT = 3000;
 
+function formatEth(value: number) {
+  return `${value.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: value % 1 ? 2 : 0 })} ETH`;
+}
+
 function formatUsdt(value: number) {
   return `${value.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: value % 1 ? 2 : 0 })} USDT`;
 }
@@ -139,8 +143,8 @@ function LenderCard({
 
       <div className="mt-5 grid gap-4 text-sm md:grid-cols-3">
         <div>
-          <p className="text-slate-500">Loan Amount</p>
-          <p className="mt-2 text-lg font-semibold text-slate-100">{formatUsdt(application.amount)}</p>
+           <p className="text-slate-500">Loan Amount</p>
+           <p className="mt-2 text-lg font-semibold text-slate-100">{formatUsdt(application.amount)}</p>
         </div>
         <div>
           <p className="text-slate-500">Public Collateral Ratio</p>
@@ -177,12 +181,12 @@ function LenderCard({
         <p className="text-sm font-semibold text-slate-100">Lender Assessment</p>
         <div className="mt-3 space-y-2 text-sm leading-6 text-slate-300">
           <p>
-            Best case: Borrower repays principal {formatUsdt(application.amount)} + interest {formatUsdt(application.estimatedInterest)} on time.
+              Best case: Borrower repays principal {formatUsdt(application.amount)} + interest {formatUsdt(application.estimatedInterest)} on time.
           </p>
           <p>Worst case: If the borrower defaults or is overdue, the lender needs to monitor collateral coverage and principal protection.</p>
           <p>Key points: principal protection, interest target met, funds locked for {application.termLabel}, clear repayment amount.</p>
           <p>
-            Repayment: Borrower repays {formatUsdt(application.estimatedRepayment)}, converted to {repaymentEth} SepoliaETH for the demo.
+            Repayment: Borrower repays {formatUsdt(application.estimatedRepayment)}.
           </p>
         </div>
       </div>
@@ -191,10 +195,10 @@ function LenderCard({
         <div className="text-sm text-slate-400">
           <span>Term: {application.termLabel}</span>
           <span className="mx-2 text-slate-600">/</span>
-          <span>Repayment: {formatUsdt(application.estimatedRepayment)}</span>
+           <span>Repayment: {formatUsdt(application.estimatedRepayment)}</span>
           <span className="mx-2 text-slate-600">/</span>
           <span>
-            Funding Amount: {formatUsdt(application.amount)} / {fundingEth} SepoliaETH
+            Funding Amount: {formatUsdt(application.amount)}
           </span>
         </div>
         <button

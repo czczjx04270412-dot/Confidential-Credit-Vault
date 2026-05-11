@@ -2,8 +2,8 @@ import Layout from "@/components/Layout";
 import MetricCard from "@/components/MetricCard";
 import { protectedFields, riskBandLabel, statusLabel, useCreditVault } from "@/lib/creditVault";
 
-function formatUsdt(value: number) {
-  return `${value.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: value % 1 ? 2 : 0 })} USDT`;
+function formatEth(value: number) {
+  return `${value.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: value % 1 ? 2 : 0 })} ETH`;
 }
 
 export default function DashboardPage() {
@@ -27,7 +27,7 @@ export default function DashboardPage() {
         <MetricCard label="Applications" value={String(applications.length)} />
         <MetricCard label="Approved" value={String(approved)} tone="lime" />
         <MetricCard label="Funded" value={String(funded)} tone="amber" />
-        <MetricCard label="Total Borrowed" value={formatUsdt(totalBorrowed)} tone="aqua" />
+        <MetricCard label="Total Borrowed" value={formatEth(totalBorrowed)} tone="aqua" />
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[0.8fr_1.2fr]">
@@ -65,7 +65,7 @@ export default function DashboardPage() {
                     <tr key={application.id}>
                       <td className="py-4 pr-4 font-semibold text-slate-100">{application.id}</td>
                       <td className="py-4 pr-4 text-slate-300">{application.borrower}</td>
-                      <td className="py-4 pr-4 text-slate-300">{formatUsdt(application.amount)}</td>
+                      <td className="py-4 pr-4 text-slate-300">{formatEth(application.amount)}</td>
                       <td className="py-4 pr-4 text-aqua">
                         {application.riskScore} / {riskBandLabel(application.riskBand)}
                       </td>

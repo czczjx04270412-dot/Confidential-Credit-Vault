@@ -19,53 +19,53 @@ type RiskExplanationResponse = {
 };
 
 const systemPrompt = `
-你是一个 DeFi 隐私信贷风控解释助手，服务于基于 Zama FHE 的隐私借贷 dApp。
+You are a DeFi privacy credit risk explanation assistant for a Zama FHE-based confidential lending dApp.
 
-你的任务不是重新计算信用分，也不是读取借款人的原始资料。你的任务是解释智能合约已经输出的最终风控结果，帮助贷方理解这笔借款申请的风险。
+Your task is NOT to recalculate credit scores or read the borrower's raw data. Your task is to explain the final risk assessment results already output by the smart contract, helping lenders understand the risk of this loan application.
 
-你只能使用以下信息：风险等级、风险分、当前抵押率、最低抵押率、建议年化利率、借款期限、预计利息、到期应还金额、链上状态。
+You may ONLY use the following information: risk band, risk score, current collateral ratio, minimum collateral ratio, suggested APR, loan term, estimated interest, estimated repayment amount, and on-chain status.
 
-你不能读取、推测或编造借款人的原始收入、信用历史、负债压力、资产来源、身份信息或任何未提供的数据。
+You must NOT read, infer, or fabricate the borrower's raw income, credit history, debt pressure, asset sources, identity information, or any data not provided.
 
-请用中文输出三段：
-1. 风险结论
-2. 放款依据
-3. 隐私说明
+Please output exactly three sections in English:
+1. Risk Conclusion
+2. Lending Rationale
+3. Privacy Note
 
-表达要简洁，适合展示在 dApp 申请卡片中。不要承诺无风险，不要保证收益，不要编造未提供的数据。
+Be concise and suitable for display in a dApp application card. Do not promise zero risk, do not guarantee returns, and do not fabricate data that was not provided.
 `;
 
 function buildUserPrompt(input: RiskExplanationRequest) {
   return `
-请基于以下 Zama 合约输出，为贷方生成一段风险解释：
+Based on the following Zama contract output, generate a risk explanation for the lender:
 
-申请编号：${input.applicationId}
-风险等级：${input.riskBand}
-加密风险分：${input.riskScore}
-当前公开抵押率：${input.collateralRatio}%
-最低抵押率：${input.requiredCollateralRatio}%
-建议年化利率：${input.suggestedRate}
-借款期限：${input.termLabel ?? "未提供"}
-预计利息：${input.estimatedInterest ?? "未提供"} USDT
-预计到期应还：${input.estimatedRepayment ?? "未提供"} USDT
-当前状态：${input.status}
+Application ID: ${input.applicationId}
+Risk Band: ${input.riskBand}
+Encrypted Risk Score: ${input.riskScore}
+Current Public Collateral Ratio: ${input.collateralRatio}%
+Minimum Collateral Ratio: ${input.requiredCollateralRatio}%
+Suggested APR: ${input.suggestedRate}
+Loan Term: ${input.termLabel ?? "Not provided"}
+Estimated Interest: ${input.estimatedInterest ?? "Not provided"} USDT
+Estimated Repayment: ${input.estimatedRepayment ?? "Not provided"} USDT
+Current Status: ${input.status}
 
-注意：
-- 这些数据是 Zama FHE 合约输出后的最终结果。
-- AI 没有访问收入、信用历史、负债压力、资产来源等原始隐私数据。
-- 请只解释结果，不要推测原始数据。
+Notes:
+- This data represents the final output from the Zama FHE contract.
+- The AI has no access to raw private data such as income, credit history, debt pressure, or asset sources.
+- Only explain the results; do not speculate about the raw data.
 `;
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse<RiskExplanationResponse>) {
   if (req.method !== "POST") {
-    res.status(405).json({ error: "只支持 POST 请求" });
+    res.status(405).json({ error: "Only POST requests are supported" });
     return;
   }
 
   const apiKey = process.env.DEEPSEEK_API_KEY;
   if (!apiKey) {
-    res.status(500).json({ error: "服务端未配置 DEEPSEEK_API_KEY" });
+    res.status(500).json({ error: "DEEPSEEK_API_KEY is not configured on the server" });
     return;
   }
 
@@ -91,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
 
     if (!response.ok) {
       const errorText = await response.text();
-      res.status(response.status).json({ error: errorText || "DeepSeek 请求失败" });
+      res.status(response.status).json({ error: errorText || "DeepSeek request failed" });
       return;
     }
 
@@ -99,13 +99,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse<
     const explanation = data?.choices?.[0]?.message?.content;
 
     if (!explanation) {
-      res.status(502).json({ error: "DeepSeek 没有返回解释内容" });
+      res.status(502).json({ error: "DeepSeek did not return an explanation" });
       return;
     }
 
     res.status(200).json({ explanation });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "生成解释失败";
+    const message = error instanceof Error ? error.message : "Failed to generate explanation";
     res.status(500).json({ error: message });
   }
 }
