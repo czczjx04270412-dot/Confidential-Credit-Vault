@@ -92,10 +92,10 @@ function rateByBand(riskBand: RiskBand) {
 }
 
 export function termUnitLabel(unit: LoanTermUnit) {
-  if (unit === "day") return "天";
-  if (unit === "week") return "周";
-  if (unit === "month") return "个月";
-  return "年";
+  if (unit === "day") return "day(s)";
+  if (unit === "week") return "week(s)";
+  if (unit === "month") return "month(s)";
+  return "year(s)";
 }
 
 export function termToDays(value: number, unit: LoanTermUnit) {
@@ -117,7 +117,7 @@ export function computeRisk(input: CreditApplicationInput): RiskResult {
   const collateralOk = collateralRatio >= requiredCollateralRatio;
   const approved = riskBand !== "Reject" && collateralOk;
   const annualInterestRate = rateByBand(riskBand);
-  const suggestedRate = annualInterestRate ? `${annualInterestRate.toFixed(1)}%` : "无";
+  const suggestedRate = annualInterestRate ? `${annualInterestRate.toFixed(1)}%` : "N/A";
   const termDays = termToDays(input.termValue, input.termUnit);
   const estimatedInterest = roundCurrency(input.amount * (annualInterestRate / 100) * (termDays / 365));
   const estimatedRepayment = roundCurrency(input.amount + estimatedInterest);
@@ -141,30 +141,30 @@ export function computeRisk(input: CreditApplicationInput): RiskResult {
 }
 
 export const protectedFields = [
-  "收入稳定性评分",
-  "信用历史评分",
-  "负债压力评分",
-  "资产来源评分",
-  "加密风险分",
-  "最低抵押率",
-  "建议利率",
-  "预计利息",
-  "审批结果"
+  "Income Stability Score",
+  "Credit History Score",
+  "Debt Pressure Score",
+  "Asset Source Score",
+  "Encrypted Risk Score",
+  "Min Collateral Ratio",
+  "Suggested Rate",
+  "Estimated Interest",
+  "Approval Result"
 ];
 
 export function riskBandLabel(riskBand: RiskBand) {
-  if (riskBand === "Low") return "低风险";
-  if (riskBand === "Medium") return "中风险";
-  if (riskBand === "High") return "高风险";
-  return "拒绝";
+  if (riskBand === "Low") return "Low Risk";
+  if (riskBand === "Medium") return "Medium Risk";
+  if (riskBand === "High") return "High Risk";
+  return "Rejected";
 }
 
 export function statusLabel(status: ApplicationStatus) {
-  if (status === "Encrypted review") return "加密审核中";
-  if (status === "Approved") return "已通过";
-  if (status === "Needs review") return "需要复核";
-  if (status === "Funded") return "已放款";
-  return "已还款";
+  if (status === "Encrypted review") return "Encrypted Review";
+  if (status === "Approved") return "Approved";
+  if (status === "Needs review") return "Needs Review";
+  if (status === "Funded") return "Funded";
+  return "Repaid";
 }
 
 export function CreditVaultProvider({ children }: { children: ReactNode }) {

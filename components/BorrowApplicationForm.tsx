@@ -16,7 +16,7 @@ const ETH_TO_TEST_USDT = 3000;
 const PAGE_SIZE = 3;
 
 function formatUsdt(value: number) {
-  return `${value.toLocaleString("zh-CN", { maximumFractionDigits: 2, minimumFractionDigits: value % 1 ? 2 : 0 })} USDT`;
+  return `${value.toLocaleString("en-US", { maximumFractionDigits: 2, minimumFractionDigits: value % 1 ? 2 : 0 })} USDT`;
 }
 
 function ApplicationCard({
@@ -50,9 +50,9 @@ function ApplicationCard({
     try {
       const chain = await repayLoanOnZama(application.chainApplicationId);
       onRepay(application.id, { repayTxHash: chain.transactionHash });
-      setRepayStatus("已完成链上还款，抵押金已释放");
+      setRepayStatus("Repaid on-chain, collateral released");
     } catch (err) {
-      setRepayError(err instanceof Error ? err.message : "链上还款失败");
+      setRepayError(err instanceof Error ? err.message : "On-chain repayment failed");
     } finally {
       setIsRepaying(false);
     }
@@ -62,7 +62,7 @@ function ApplicationCard({
     <div className={`rounded-md border ${resultTone} p-5`}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs uppercase tracking-wide text-slate-500">申请编号</p>
+          <p className="text-xs uppercase tracking-wide text-slate-500">Application ID</p>
           <h3 className="mt-2 text-xl font-semibold text-slate-100">{application.id}</h3>
         </div>
         <span
@@ -76,42 +76,42 @@ function ApplicationCard({
 
       {application.chainTxHash ? (
         <div className="mt-4 rounded-md border border-aqua/20 bg-aqua/10 p-3 text-xs leading-5 text-aqua">
-          链上申请 #{application.chainApplicationId || "unknown"} / {application.chainTxHash.slice(0, 10)}...
+          On-chain #{application.chainApplicationId || "unknown"} / {application.chainTxHash.slice(0, 10)}...
           {application.chainTxHash.slice(-8)}
         </div>
       ) : (
         <div className="mt-4 rounded-md border border-amber/20 bg-amber/10 p-3 text-xs leading-5 text-amber">
-          本地演示记录
+          Local demo record
         </div>
       )}
 
       <div className="mt-5 grid gap-4 text-sm text-slate-300 md:grid-cols-3">
         <div className="rounded-md bg-ink p-4">
-          <p className="text-xs text-slate-500">借款人</p>
+          <p className="text-xs text-slate-500">Borrower</p>
           <p className="mt-2 font-semibold text-slate-100">{application.borrower}</p>
         </div>
         <div className="rounded-md bg-ink p-4">
-          <p className="text-xs text-slate-500">借款金额</p>
+          <p className="text-xs text-slate-500">Loan Amount</p>
           <p className="mt-2 font-semibold text-slate-100">{formatUsdt(application.amount)}</p>
         </div>
         <div className="rounded-md bg-ink p-4">
-          <p className="text-xs text-slate-500">建议抵押净值</p>
+          <p className="text-xs text-slate-500">Required Collateral</p>
           <p className="mt-2 font-semibold text-aqua">{formatUsdt(application.requiredCollateralValue)}</p>
         </div>
         <div className="rounded-md bg-ink p-4">
-          <p className="text-xs text-slate-500">风险结果</p>
+          <p className="text-xs text-slate-500">Risk Result</p>
           <p className="mt-2 font-semibold text-slate-100">
             {application.riskScore} / {riskBandLabel(application.riskBand)}
           </p>
         </div>
         <div className="rounded-md bg-ink p-4">
-          <p className="text-xs text-slate-500">抵押规则</p>
+          <p className="text-xs text-slate-500">Collateral Rule</p>
           <p className="mt-2 font-semibold text-slate-100">
-            当前 {application.collateralRatio}% / 最低 {application.requiredCollateralRatio}%
+            Current {application.collateralRatio}% / Min {application.requiredCollateralRatio}%
           </p>
         </div>
         <div className="rounded-md bg-ink p-4">
-          <p className="text-xs text-slate-500">到期应还</p>
+          <p className="text-xs text-slate-500">Repayment Due</p>
           <p className="mt-2 font-semibold text-slate-100">
             {formatUsdt(application.estimatedRepayment)} / {repaymentEth} ETH
           </p>
@@ -120,20 +120,20 @@ function ApplicationCard({
       <div className="mt-5 rounded-md border border-line bg-black/20 p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="text-sm leading-6 text-slate-300">
-            <p className="font-semibold text-slate-100">借款人还款</p>
-            <p>还款由借款钱包发起，本息转给贷方后，合约释放已锁定抵押金。</p>
+            <p className="font-semibold text-slate-100">Borrower Repayment</p>
+            <p>Repayment is initiated from the borrower's wallet. After principal and interest are transferred to the lender, the contract releases the locked collateral.</p>
           </div>
           <button
             onClick={handleRepay}
             disabled={!canRepay || isRepaying}
             className="rounded-md border border-lime/40 px-4 py-2 text-sm font-semibold text-lime transition hover:bg-lime/10 disabled:cursor-not-allowed disabled:border-line disabled:text-slate-500"
           >
-            {isRepaying ? "还款中..." : application.status === "Repaid" ? "已还款" : canRepay ? "链上还款" : "等待可还款"}
+            {isRepaying ? "Repaying..." : application.status === "Repaid" ? "Repaid" : canRepay ? "Repay On-Chain" : "Waiting to Repay"}
           </button>
         </div>
         {application.repayTxHash ? (
           <p className="mt-3 text-xs text-lime">
-            还款交易：{application.repayTxHash.slice(0, 10)}...{application.repayTxHash.slice(-8)}
+            Repayment Tx: {application.repayTxHash.slice(0, 10)}...{application.repayTxHash.slice(-8)}
           </p>
         ) : null}
         {repayStatus ? <p className="mt-3 text-sm text-lime">{repayStatus}</p> : null}
@@ -208,21 +208,21 @@ export default function BorrowApplicationForm() {
 
     try {
       if (isChainMode) {
-        setSubmitStatus("加密中...");
+        setSubmitStatus("Encrypting...");
         const chain = await submitEncryptedApplicationToZama(input, address);
         submitApplication(input, address, {
           chainTxHash: chain.transactionHash,
           chainApplicationId: chain.applicationId,
           contractAddress: chain.contractAddress
         });
-        setSubmitStatus("已提交链上申请");
+        setSubmitStatus("Submitted on-chain");
       } else {
         submitApplication(input, address);
-        setSubmitStatus("已生成本地申请");
+        setSubmitStatus("Local application created");
       }
       setPage(1);
     } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : "提交失败");
+      setSubmitError(err instanceof Error ? err.message : "Submission failed");
       setSubmitStatus("");
     } finally {
       setIsSubmitting(false);
@@ -230,13 +230,13 @@ export default function BorrowApplicationForm() {
   }
 
   function submitButtonText() {
-    if (isSubmitting) return isChainMode ? "提交中..." : "生成中...";
-    if (!address) return "连接 EVM 钱包";
-    if (!isOnSepolia) return "切换 Sepolia";
-    if (!parsedTermValue) return "填写期限";
-    if (previewRisk?.riskBand === "Reject") return "风险过高";
-    if (!hasEnoughCollateral) return "余额不足";
-    return isChainMode ? "加密并提交" : "生成申请";
+    if (isSubmitting) return isChainMode ? "Submitting..." : "Generating...";
+    if (!address) return "Connect EVM Wallet";
+    if (!isOnSepolia) return "Switch to Sepolia";
+    if (!parsedTermValue) return "Enter loan term";
+    if (previewRisk?.riskBand === "Reject") return "Risk too high";
+    if (!hasEnoughCollateral) return "Insufficient balance";
+    return isChainMode ? "Encrypt & Submit" : "Generate Application";
   }
 
   return (
@@ -245,26 +245,26 @@ export default function BorrowApplicationForm() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-wide text-slate-500">Borrower</p>
-            <h1 className="mt-2 text-2xl font-semibold">借款申请</h1>
+            <h1 className="mt-2 text-2xl font-semibold">Borrow Application</h1>
           </div>
           <span className={isChainMode ? "rounded-md bg-aqua/10 px-3 py-2 text-sm text-aqua" : "rounded-md bg-amber/10 px-3 py-2 text-sm text-amber"}>
-            {isChainMode ? "Zama 链上模式" : "本地演示模式"}
+            {isChainMode ? "Zama On-Chain Mode" : "Local Demo Mode"}
           </span>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <div className="rounded-md border border-line bg-black/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">钱包网络</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Wallet Network</p>
             <p className="mt-2 text-lg font-semibold text-slate-100">{formatChain(chainId)}</p>
           </div>
           <div className="rounded-md border border-line bg-black/20 p-4">
             <p className="text-xs uppercase tracking-wide text-slate-500">SepoliaETH</p>
             <p className="mt-2 text-lg font-semibold text-aqua">
-              {isBalanceLoading ? "读取中..." : `${(ethBalance ?? 0).toFixed(6)} ETH`}
+              {isBalanceLoading ? "Loading..." : `${(ethBalance ?? 0).toFixed(6)} ETH`}
             </p>
           </div>
           <div className="rounded-md border border-line bg-black/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">可用抵押额度</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Available Collateral</p>
             <p className={hasEnoughCollateral ? "mt-2 text-lg font-semibold text-lime" : "mt-2 text-lg font-semibold text-amber"}>
               {availableTestUsdt.toFixed(2)} USDT
             </p>
@@ -274,17 +274,17 @@ export default function BorrowApplicationForm() {
         <div className="mt-4 flex flex-wrap items-center gap-3">
           {address && !isOnSepolia ? (
             <button onClick={switchToSepolia} className="rounded-md border border-amber/50 px-3 py-2 text-xs font-semibold text-amber">
-              切换 Sepolia
+              Switch to Sepolia
             </button>
           ) : null}
           <button onClick={refreshBalance} className="rounded-md border border-aqua/40 px-3 py-2 text-xs font-semibold text-aqua">
-            刷新余额
+            Refresh Balance
           </button>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-3">
           <label className="block">
-            <span className="text-sm font-medium text-slate-300">借款金额</span>
+            <span className="text-sm font-medium text-slate-300">Loan Amount</span>
             <input
               value={amount}
               onChange={(event) => setAmount(event.target.value)}
@@ -292,7 +292,7 @@ export default function BorrowApplicationForm() {
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-slate-300">借款期限</span>
+            <span className="text-sm font-medium text-slate-300">Loan Term</span>
             <input
               value={termValue}
               onChange={(event) => setTermValue(event.target.value)}
@@ -300,61 +300,61 @@ export default function BorrowApplicationForm() {
             />
           </label>
           <label className="block">
-            <span className="text-sm font-medium text-slate-300">期限单位</span>
+            <span className="text-sm font-medium text-slate-300">Term Unit</span>
             <select
               value={termUnit}
               onChange={(event) => setTermUnit(event.target.value as LoanTermUnit)}
               className="mt-2 w-full rounded-md border border-line bg-ink px-3 py-3 text-sm text-slate-100 outline-none transition focus:border-aqua"
             >
-              <option value="day">天</option>
-              <option value="week">周</option>
-              <option value="month">月</option>
-              <option value="year">年</option>
+              <option value="day">Day</option>
+              <option value="week">Week</option>
+              <option value="month">Month</option>
+              <option value="year">Year</option>
             </select>
           </label>
         </div>
 
         <div className="mt-6 grid gap-4 md:grid-cols-4">
           <div className="rounded-md border border-line bg-black/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">风险分</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Risk Score</p>
             <p className="mt-2 text-xl font-semibold text-aqua">{previewRisk?.riskScore ?? "--"}</p>
           </div>
           <div className="rounded-md border border-line bg-black/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">风险等级</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Risk Level</p>
             <p className="mt-2 text-xl font-semibold text-slate-100">{previewRisk ? riskBandLabel(previewRisk.riskBand) : "--"}</p>
           </div>
           <div className="rounded-md border border-line bg-black/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">最低抵押率</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Min Collateral</p>
             <p className="mt-2 text-xl font-semibold text-amber">{previewRisk ? `${previewRisk.requiredCollateralRatio}%` : "--"}</p>
           </div>
           <div className="rounded-md border border-line bg-black/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">年化利率</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">APR</p>
             <p className="mt-2 text-xl font-semibold text-slate-100">{previewRisk?.suggestedRate ?? "--"}</p>
           </div>
         </div>
 
         <div className="mt-4 grid gap-4 md:grid-cols-4">
           <div className="rounded-md border border-line bg-black/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">建议抵押净值</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Required Collateral</p>
             <p className="mt-2 text-xl font-semibold text-aqua">{collateralNeeded ? `${formatUsdt(collateralNeeded)} / ${collateralEth} ETH` : "--"}</p>
           </div>
           <div className="rounded-md border border-line bg-black/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">计息天数</p>
-            <p className="mt-2 text-xl font-semibold text-slate-100">{previewRisk ? `${previewRisk.termDays} 天` : "--"}</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Interest Days</p>
+            <p className="mt-2 text-xl font-semibold text-slate-100">{previewRisk ? `${previewRisk.termDays} days` : "--"}</p>
           </div>
           <div className="rounded-md border border-line bg-black/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">预计利息</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Est. Interest</p>
             <p className="mt-2 text-xl font-semibold text-amber">{previewRisk ? formatUsdt(previewRisk.estimatedInterest) : "--"}</p>
           </div>
           <div className="rounded-md border border-line bg-black/20 p-4">
-            <p className="text-xs uppercase tracking-wide text-slate-500">到期应还</p>
+            <p className="text-xs uppercase tracking-wide text-slate-500">Total Repayment</p>
             <p className="mt-2 text-xl font-semibold text-lime">{previewRisk ? formatUsdt(previewRisk.estimatedRepayment) : "--"}</p>
           </div>
         </div>
 
         <div className="mt-6 rounded-md border border-line bg-black/20 p-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
-            <p className="text-sm font-semibold text-slate-200">风险画像</p>
+            <p className="text-sm font-semibold text-slate-200">Risk Profile</p>
             <div className="flex rounded-md border border-line bg-ink p-1">
               {(["safe", "normal", "risky"] as RiskProfileMode[]).map((mode) => (
                 <button
@@ -373,19 +373,19 @@ export default function BorrowApplicationForm() {
           {riskProfile ? (
             <div className="mt-4 grid gap-4 md:grid-cols-4">
               <div className="rounded-md bg-ink p-4">
-                <p className="text-xs text-slate-500">信用历史</p>
+                <p className="text-xs text-slate-500">Credit History</p>
                 <p className="mt-2 text-xl font-semibold text-aqua">{riskProfile.creditScore}</p>
               </div>
               <div className="rounded-md bg-ink p-4">
-                <p className="text-xs text-slate-500">收入稳定性</p>
+                <p className="text-xs text-slate-500">Income Stability</p>
                 <p className="mt-2 text-xl font-semibold text-aqua">{riskProfile.incomeScore}</p>
               </div>
               <div className="rounded-md bg-ink p-4">
-                <p className="text-xs text-slate-500">负债压力</p>
+                <p className="text-xs text-slate-500">Debt Pressure</p>
                 <p className="mt-2 text-xl font-semibold text-amber">{riskProfile.debtPressure}</p>
               </div>
               <div className="rounded-md bg-ink p-4">
-                <p className="text-xs text-slate-500">资产来源</p>
+                <p className="text-xs text-slate-500">Asset Source</p>
                 <p className="mt-2 text-xl font-semibold text-aqua">{riskProfile.assetSource}</p>
               </div>
             </div>
@@ -409,9 +409,9 @@ export default function BorrowApplicationForm() {
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-xs uppercase tracking-wide text-slate-500">Records</p>
-            <h2 className="mt-2 text-xl font-semibold">我的申请</h2>
+            <h2 className="mt-2 text-xl font-semibold">My Applications</h2>
           </div>
-          <span className="rounded-md bg-aqua/10 px-3 py-2 text-sm text-aqua">共 {applications.length} 条</span>
+          <span className="rounded-md bg-aqua/10 px-3 py-2 text-sm text-aqua">{applications.length} records</span>
         </div>
 
         <div className="mt-5 space-y-4">
@@ -423,7 +423,7 @@ export default function BorrowApplicationForm() {
         {applications.length > PAGE_SIZE ? (
           <div className="mt-5 flex items-center justify-between gap-3 border-t border-line pt-4 text-sm text-slate-400">
             <span>
-              第 {page} / {totalPages} 页
+              Page {page} / {totalPages}
             </span>
             <div className="flex gap-2">
               <button
@@ -431,14 +431,14 @@ export default function BorrowApplicationForm() {
                 disabled={page === 1}
                 className="rounded-md border border-line px-3 py-2 font-semibold text-slate-300 disabled:cursor-not-allowed disabled:text-slate-600"
               >
-                上一页
+                Previous
               </button>
               <button
                 onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
                 disabled={page === totalPages}
                 className="rounded-md border border-line px-3 py-2 font-semibold text-slate-300 disabled:cursor-not-allowed disabled:text-slate-600"
               >
-                下一页
+                Next
               </button>
             </div>
           </div>

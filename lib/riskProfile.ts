@@ -112,9 +112,9 @@ function rangeByMode(mode: RiskProfileMode) {
 }
 
 export function profileModeLabel(mode: RiskProfileMode) {
-  if (mode === "safe") return "稳健型";
-  if (mode === "normal") return "普通型";
-  return "高风险型";
+  if (mode === "safe") return "Safe";
+  if (mode === "normal") return "Normal";
+  return "Risky";
 }
 
 export function buildRiskProfile(address: string | null, mode: RiskProfileMode): RiskProfile | null {

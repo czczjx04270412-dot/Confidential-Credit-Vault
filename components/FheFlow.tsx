@@ -1,19 +1,19 @@
 const steps = [
   {
-    title: "1. 加密借款人风险信号",
-    body: "借款人把收入稳定性、信用历史、负债压力和资产来源评分转换成 externalEuint64 密文。"
+    title: "1. Encrypt Borrower Risk Signals",
+    body: "The borrower converts income stability, credit history, debt pressure, and asset source scores into externalEuint64 ciphertexts."
   },
   {
-    title: "2. 提交输入证明",
-    body: "前端把密文句柄和 Zama 输入证明提交给 FHE 合约的 submitApplication 方法。"
+    title: "2. Submit Input Proof",
+    body: "The frontend submits the ciphertext handles and Zama input proofs to the FHE contract via submitApplication."
   },
   {
-    title: "3. 在密文上计算风险",
-    body: "合约使用 FHE.add、FHE.mul、FHE.div、FHE.ge 和 FHE.select 计算风险等级、最低抵押率和利率。"
+    title: "3. Compute Risk on Ciphertexts",
+    body: "The contract uses FHE.add, FHE.mul, FHE.div, FHE.ge, and FHE.select to compute risk level, minimum collateral ratio, and interest rate."
   },
   {
-    title: "4. 只展示最终结果",
-    body: "贷方看到风险等级、抵押规则和利率解释，但看不到借款人的原始财务信号。"
+    title: "4. Reveal Only the Final Result",
+    body: "Lenders see the risk level, collateral rules, and interest rate explanation, but not the borrower's original financial signals."
   }
 ];
 
@@ -21,7 +21,7 @@ export default function FheFlow() {
   return (
     <section className="rounded-md border border-line bg-panel p-5">
       <p className="text-xs uppercase tracking-wide text-slate-500">FHE Architecture</p>
-      <h2 className="mt-2 text-xl font-semibold">这个 dApp 如何使用 Zama</h2>
+      <h2 className="mt-2 text-xl font-semibold">How This dApp Uses Zama</h2>
       <div className="mt-5 grid gap-3 md:grid-cols-2">
         {steps.map((step) => (
           <div key={step.title} className="rounded-md bg-black/20 p-4">

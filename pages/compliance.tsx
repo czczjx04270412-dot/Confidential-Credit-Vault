@@ -1,11 +1,11 @@
 import Layout from "@/components/Layout";
 
 const rules = [
-  "借款人的财务评分以加密输入形式提交。",
-  "合约在加密数值上计算风险等级、最低抵押率和建议利率。",
-  "贷方根据最终风险结果和 DeepSeek 解释进行判断，不读取原始隐私数据。",
-  "借款人提交抵押金，贷方放款后资金通过合约进入借款人钱包。",
-  "借款人链上还款后，本息转给贷方，抵押金释放给借款人。"
+  "Borrower's financial scores are submitted as encrypted inputs.",
+  "The contract computes risk level, minimum collateral ratio, and suggested rate on ciphertexts.",
+  "Lenders judge based on final risk results and DeepSeek explanations, without accessing raw private data.",
+  "Borrower deposits collateral; after the lender funds, the loan is transferred to the borrower's wallet via the contract.",
+  "When the borrower repays on-chain, principal and interest go to the lender, and the collateral is released back to the borrower."
 ];
 
 export default function CompliancePage() {
@@ -13,9 +13,10 @@ export default function CompliancePage() {
     <Layout>
       <section className="rounded-md border border-line bg-panel p-5 shadow-glow">
         <p className="text-xs uppercase tracking-wide text-slate-500">Privacy And Compliance</p>
-        <h1 className="mt-2 text-2xl font-semibold">数据最小化的隐私金融设计</h1>
+        <h1 className="mt-2 text-2xl font-semibold">Data-Minimized Privacy Finance Design</h1>
         <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-400">
-          产品围绕数据最小化设计：公众不能看到借款人的原始风控信号，贷方只看到放款决策所需的最终风险结果、抵押率、利率和还款信息。
+          The product is designed around data minimization: the public cannot see the borrower's raw risk signals;
+          lenders only see the final risk results, collateral ratio, interest rate, and repayment information needed for lending decisions.
         </p>
         <div className="mt-6 grid gap-3 md:grid-cols-2">
           {rules.map((rule) => (
@@ -25,12 +26,12 @@ export default function CompliancePage() {
           ))}
         </div>
         <div className="mt-6 rounded-md border border-line bg-ink p-4">
-          <p className="text-sm font-semibold text-slate-200">角色权限</p>
+          <p className="text-sm font-semibold text-slate-200">Role Permissions</p>
           <div className="mt-3 grid gap-3 text-sm text-slate-400 md:grid-cols-4">
-            <span>公众：只能看到公开元数据</span>
-            <span>借款人：提交加密资料并还款</span>
-            <span>贷方：查看风险结果并放款</span>
-            <span>合约：锁定抵押、转账、结算</span>
+            <span>Public: can only see public metadata</span>
+            <span>Borrower: submits encrypted data and repays</span>
+            <span>Lender: views risk results and funds loans</span>
+            <span>Contract: locks collateral, transfers, settles</span>
           </div>
         </div>
       </section>

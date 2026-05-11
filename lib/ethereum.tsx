@@ -44,8 +44,8 @@ export function getEvmProvider() {
 function detectWalletName(provider?: EthereumProvider) {
   if (provider?.isPhantom) return "Phantom EVM";
   if (provider?.isMetaMask) return "MetaMask";
-  if (provider) return "EVM 钱包";
-  return "未连接";
+  if (provider) return "EVM Wallet";
+  return "Not Connected";
 }
 
 function shortAddress(address: string | null) {
@@ -66,9 +66,9 @@ export function formatAddress(address: string | null) {
 }
 
 export function formatChain(chainId: string | null) {
-  if (!chainId) return "未连接";
-  if (chainId.toLowerCase() === SEPOLIA_CHAIN_ID) return "Sepolia 测试网";
-  if (chainId.toLowerCase() === "0x1") return "Ethereum 主网";
+  if (!chainId) return "Not Connected";
+  if (chainId.toLowerCase() === SEPOLIA_CHAIN_ID) return "Sepolia Testnet";
+  if (chainId.toLowerCase() === "0x1") return "Ethereum Mainnet";
   return chainId;
 }
 
@@ -80,7 +80,7 @@ export function EthereumWalletProvider({ children }: { children: ReactNode }) {
   const [address, setAddress] = useState<string | null>(null);
   const [chainId, setChainId] = useState<string | null>(null);
   const [ethBalance, setEthBalance] = useState<number | null>(null);
-  const [walletName, setWalletName] = useState("未连接");
+  const [walletName, setWalletName] = useState("Not Connected");
   const [isConnecting, setIsConnecting] = useState(false);
   const [isBalanceLoading, setIsBalanceLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -103,7 +103,7 @@ export function EthereumWalletProvider({ children }: { children: ReactNode }) {
       })) as string;
       setEthBalance(weiHexToEth(balanceHex));
     } catch (err) {
-      const message = err instanceof Error ? err.message : "读取 SepoliaETH 余额失败。";
+      const message = err instanceof Error ? err.message : "Failed to read SepoliaETH balance.";
       setError(message);
     } finally {
       setIsBalanceLoading(false);
@@ -148,7 +148,7 @@ export function EthereumWalletProvider({ children }: { children: ReactNode }) {
     const provider = getEvmProvider();
 
     if (!provider) {
-      setError("未检测到 EVM 钱包。请安装 Phantom EVM 或 MetaMask 后刷新页面。");
+      setError("No EVM wallet detected. Please install Phantom EVM or MetaMask and refresh.");
       return;
     }
 
@@ -167,9 +167,9 @@ export function EthereumWalletProvider({ children }: { children: ReactNode }) {
       if (selectedAddress) {
         const message = [
           "Zama Confidential Credit Vault",
-          "请签署此消息以确认重新连接钱包。",
-          `钱包地址: ${selectedAddress}`,
-          `时间: ${new Date().toISOString()}`
+          "Please sign this message to confirm wallet reconnection.",
+          `Wallet Address: ${selectedAddress}`,
+          `Time: ${new Date().toISOString()}`
         ].join("\n");
 
         await provider.request({
@@ -181,7 +181,7 @@ export function EthereumWalletProvider({ children }: { children: ReactNode }) {
       setAddress(selectedAddress);
       setChainId(currentChainId);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "钱包连接被拒绝。";
+      const message = err instanceof Error ? err.message : "Wallet connection rejected.";
       setError(message);
     } finally {
       setIsConnecting(false);
@@ -209,7 +209,7 @@ export function EthereumWalletProvider({ children }: { children: ReactNode }) {
     const provider = getEvmProvider();
 
     if (!provider) {
-      setError("未检测到 EVM 钱包。请安装 Phantom EVM 或 MetaMask 后刷新页面。");
+      setError("No EVM wallet detected. Please install Phantom EVM or MetaMask and refresh.");
       return;
     }
 
@@ -230,7 +230,7 @@ export function EthereumWalletProvider({ children }: { children: ReactNode }) {
           params: [
             {
               chainId: SEPOLIA_CHAIN_ID,
-              chainName: "Sepolia 测试网",
+              chainName: "Sepolia Testnet",
               nativeCurrency: { name: "SepoliaETH", symbol: "ETH", decimals: 18 },
               rpcUrls: [SEPOLIA_RPC_URL],
               blockExplorerUrls: ["https://sepolia.etherscan.io"]
@@ -240,7 +240,7 @@ export function EthereumWalletProvider({ children }: { children: ReactNode }) {
         return;
       }
 
-      const message = err instanceof Error ? err.message : "切换 Sepolia 测试网失败。";
+      const message = err instanceof Error ? err.message : "Failed to switch to Sepolia testnet.";
       setError(message);
     }
   }, []);

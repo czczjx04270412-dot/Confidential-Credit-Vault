@@ -4,10 +4,10 @@ import { ReactNode } from "react";
 import ConnectWalletButton from "./ConnectWalletButton";
 
 const navItems = [
-  { href: "/dashboard", label: "总览" },
-  { href: "/borrow", label: "借款申请" },
-  { href: "/lend", label: "贷方市场" },
-  { href: "/compliance", label: "合规说明" }
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/borrow", label: "Borrow" },
+  { href: "/lend", label: "Lend" },
+  { href: "/compliance", label: "Compliance" }
 ];
 
 export default function Layout({ children }: { children: ReactNode }) {
@@ -22,8 +22,8 @@ export default function Layout({ children }: { children: ReactNode }) {
               ZC
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold tracking-wide">Zama 隐私信贷金库</span>
-              <span className="block truncate text-xs text-slate-400">用 FHE 为抵押借贷做隐私风险定价</span>
+              <span className="block truncate text-sm font-semibold tracking-wide">Zama Confidential Credit Vault</span>
+              <span className="block truncate text-xs text-slate-400">Private risk pricing for collateral lending with FHE</span>
             </span>
           </Link>
           <nav className="hidden items-center gap-1 md:flex">

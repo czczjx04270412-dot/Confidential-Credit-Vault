@@ -15,10 +15,10 @@ export default function ConnectWalletButton() {
         disabled={isConnecting}
         className="rounded-md bg-aqua px-4 py-3 text-sm font-bold text-ink transition hover:bg-aqua/90 disabled:cursor-wait disabled:bg-slate-600"
       >
-        {isConnecting ? "连接中..." : address ? "断开钱包" : "连接 EVM 钱包"}
+        {isConnecting ? "Connecting..." : address ? "Disconnect" : "Connect EVM Wallet"}
       </button>
       {!isEvmWalletAvailable || error ? (
-        <span className="hidden max-w-56 text-xs text-amber md:inline">{error ?? "未检测到 Phantom EVM / MetaMask"}</span>
+        <span className="hidden max-w-56 text-xs text-amber md:inline">{error ?? "No Phantom EVM / MetaMask detected"}</span>
       ) : null}
     </div>
   );
