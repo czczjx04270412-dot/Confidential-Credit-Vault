@@ -119,7 +119,7 @@ function ApplicationCard({
           <p className="mt-2 font-semibold text-slate-100">
             {formatUsdt(application.estimatedRepayment)}
           </p>
-          <p className="mt-1 text-xs text-slate-500">≈ {formatEth(application.estimatedRepayment / ETH_TO_TEST_USDT)}</p>
+          <p className="mt-1 text-xs text-slate-500">~ {formatEth(application.estimatedRepayment / ETH_TO_TEST_USDT)}</p>
         </div>
       </div>
       <div className="mt-5 rounded-md border border-line bg-black/20 p-4">

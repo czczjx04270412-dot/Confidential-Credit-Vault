@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { CreditApplication, riskBandLabel, statusLabel, useCreditVault } from "@/lib/creditVault";
+import { createStaticRiskExplanation } from "@/lib/aiExplanation";
+import { CreditApplication, riskBandLabel, useCreditVault } from "@/lib/creditVault";
 import { useEthereumWallet } from "@/lib/ethereum";
 import { fundLoanOnZama } from "@/lib/zamaContract";
 
@@ -55,28 +56,9 @@ function LenderCard({
     setError("");
 
     try {
-      const response = await fetch("/api/risk-explanation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          applicationId: application.id,
-          riskBand: riskBandLabel(application.riskBand),
-          riskScore: application.riskScore,
-          collateralRatio: application.collateralRatio,
-          requiredCollateralRatio: application.requiredCollateralRatio,
-          suggestedRate: application.suggestedRate,
-          termLabel: application.termLabel,
-          estimatedInterest: application.estimatedInterest,
-          estimatedRepayment: application.estimatedRepayment,
-          status: statusLabel(application.status)
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error || "DeepSeek risk explanation generation failed");
-      setExplanation(data.explanation);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "DeepSeek risk explanation generation failed");
+      setExplanation(createStaticRiskExplanation(application));
+    } catch {
+      setError("Risk explanation generation failed");
     } finally {
       setAiLoading(false);
     }
@@ -169,7 +151,7 @@ function LenderCard({
         </div>
         <p className="mt-3 whitespace-pre-wrap">
           {explanation ||
-            "Click the button to have DeepSeek generate a lender explanation based on risk level, risk score, collateral ratio, suggested rate, and repayment amount. AI does not read raw income, credit history, debt pressure, or asset source data."}
+            "Click the button to generate a lender explanation based on risk level, risk score, collateral ratio, suggested rate, and repayment amount. The explanation does not read raw income, credit history, debt pressure, or asset source data."}
         </p>
       </div>
 

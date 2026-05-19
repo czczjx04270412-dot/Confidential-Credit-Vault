@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { CreditApplication, riskBandLabel, statusLabel } from "@/lib/creditVault";
+import { createStaticRiskExplanation } from "@/lib/aiExplanation";
+import { CreditApplication, riskBandLabel } from "@/lib/creditVault";
 
 type AiRiskExplanationProps = {
   application: CreditApplication | null;
@@ -18,31 +19,9 @@ export default function AiRiskExplanation({ application }: AiRiskExplanationProp
     setExplanation("");
 
     try {
-      const response = await fetch("/api/risk-explanation", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          applicationId: application.id,
-          riskBand: riskBandLabel(application.riskBand),
-          riskScore: application.riskScore,
-          collateralRatio: application.collateralRatio,
-          requiredCollateralRatio: application.requiredCollateralRatio,
-          suggestedRate: application.suggestedRate,
-          termLabel: application.termLabel,
-          estimatedInterest: application.estimatedInterest,
-          estimatedRepayment: application.estimatedRepayment,
-          status: statusLabel(application.status)
-        })
-      });
-
-      const data = await response.json();
-      if (!response.ok) {
-        throw new Error(data.error || "AI risk explanation generation failed");
-      }
-
-      setExplanation(data.explanation);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "AI risk explanation generation failed");
+      setExplanation(createStaticRiskExplanation(application));
+    } catch {
+      setError("AI risk explanation generation failed");
     } finally {
       setLoading(false);
     }
